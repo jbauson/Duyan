@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="./js/bootstrap.min.css">
 <link rel="stylesheet" href="./js/bootstrap-theme.min.css">
 <script src="./js/bootstrap.min.js"></script>
+<audio id="beeper" src="audio/beep.wav" preload="auto"></audio>
 
 <!-- Mobile Metas -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -58,14 +59,14 @@
 			h1{font-size: 2em; margin: 25px;}
 			h2{font-size:2em; margin-left: 25px;}
 			.center{text-align:center;}
-			.jumbotron { margin-top: -48px;}
+			.jumbotron { margin-top: -35px;}
 		</style>
 
 	</head>
 	<body class="jumbotron">
 		<div class="columnsContainer">
 			<div class="leftColumn">
-				<h2 id="serving">#0 Loading...</h2>
+				<h2 id="serving">Loading...</h2>
 				<h2 id="conn"><font color="red">Connection error...</font></h2>
 			</div>
 
@@ -73,8 +74,8 @@
 				<table id="hor-minimalist-a">
 					<thead>
 						<tr>
-							<th scope="col">#</th>
-							<th scope="col">Patient Name</th>
+							<th scope="col">Queue #</th>
+							<th scope="col">Name</th>
 							<th scope="col">Status</th>
 						</tr>
 					</thead>
@@ -89,25 +90,42 @@
 			</div>
 		</div>
 <script>
+	function play_sound() {
+		document.getElementById('beeper').play();
+	}
+	
+	function tConvert(timeString){
+		//var timeString = "19:00:00";
+		var H = +timeString.substr(0, 2);
+		var h = (H % 12) || 12;
+		var ampm = H < 12 ? " AM" : " PM";
+		timeString = h + timeString.substr(2, 3) + ampm;
+		if(timeString.length<8){
+			timeString = "0"+timeString;
+		}
+		return timeString;
+	}
     function jayQueue(){
-		//$.post( "http://duyan.ph/api/patient-queue.php", function(data){
-		$.post( "http://192.168.1.36/queue", function(data){
+		$.post( "http://192.168.8.101/queue", function(data){
 			data= JSON.parse(data);
-			//if(data.serving!=undefined){
-			//	$( "#serving" ).text( "#" +data.serving.no_in_line +" "+ data.serving.name);
-			//}
 			if(data!=undefined){
 				var str = "";
 				var serve = 0;
+				var wait = 0;
 				for(ctr=0;ctr<data.length;ctr++){
 					if(data[ctr].status=="Waiting"){
 						str += "<tr><td class=\"center\">"+data[ctr].qno
 						+"</td><td class=\"center\">"+data[ctr].name
 						+"</td><td class=\"center\">"+data[ctr].status
 						+"</td></tr>";
+						wait = 1;
 					}
 					if(data[ctr].status=="Serving"){
-						$( "#serving" ).html( "<b>Serving: <font color=\"blue\">#" +data[ctr].qno +" "+ data[ctr].name+"</font></b>");
+						if($("#serving").html()!="<b>Serving: <font color=\"blue\"> "+ data[ctr].name+"</font></b>"){
+							console.log('Play a Sound');
+							play_sound();
+						}
+						$( "#serving" ).html( "<b>Serving: <font color=\"blue\"> " + data[ctr].name+"</font></b>");
 						serve = 1;
 					}
 				}
@@ -115,6 +133,9 @@
 			$("#conn").hide();
 			if(serve==0){
 				$( "#serving" ).html( "<i>No patient is being served</i>");	
+			}
+			if(wait==0){
+				$( "#hor-minimalist-a tbody" ).html( "<tr><td class=\"center\" colspan=\"3\">No patient in queue.</tr>");	
 			}
 			}
 		})
